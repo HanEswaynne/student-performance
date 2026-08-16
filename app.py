@@ -708,13 +708,13 @@ with tab_predict:
                 "Study Method",
                 [SELECT_PLACEHOLDER, "Self-study", "Group Study", "Online Learning", "Tutoring"]
             )
-            attendance_percentage = st.number_input(
-                "Attendance Percentage",
+            attendance_percentage = st.slider(
+            "Attendance Percentage",
                 min_value=0,
                 max_value=100,
-                value=None,
-                placeholder="Enter attendance %",
-                step=1
+                value=75,
+                step=1,
+                format="%d%%"
             )
 
         with col4:
