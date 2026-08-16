@@ -5,64 +5,262 @@ import joblib
 st.set_page_config(
     page_title="Student Grade Predictor",
     page_icon="🎓",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- Minimal, clean styling ---
+# --- Styling ---
 st.markdown("""
 <style>
     .block-container {
-        max-width: 800px;
-        padding-top: 2rem;
+        max-width: 960px;
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
     }
 
-    h1 {
-        color: #1f2937;
-    }
-
-    .subtitle {
-        color: #6b7280;
-        font-size: 1rem;
-        margin-top: -0.5rem;
+    .hero {
+        background: linear-gradient(135deg, #0f766e 0%, #115e59 55%, #134e4a 100%);
+        color: #ffffff;
+        padding: 2rem 2.25rem;
+        border-radius: 16px;
         margin-bottom: 1.5rem;
+        box-shadow: 0 10px 30px rgba(15, 118, 110, 0.18);
+    }
+
+    .hero h1 {
+        color: #ffffff !important;
+        font-size: 2rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .hero p {
+        color: #ccfbf1;
+        font-size: 1.02rem;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    .section-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 1.25rem 1.35rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .section-card h3 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+        color: #111827;
+        font-size: 1.05rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+    }
+
+    .info-pill {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.85rem 0.9rem;
+        min-height: 118px;
+    }
+
+    .info-pill .icon {
+        font-size: 1.25rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .info-pill .title {
+        font-weight: 700;
+        color: #0f766e;
+        font-size: 0.88rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .info-pill .desc {
+        color: #64748b;
+        font-size: 0.78rem;
+        line-height: 1.45;
+        margin: 0;
+    }
+
+    .how-it-works {
+        background: #f0fdfa;
+        border: 1px solid #99f6e4;
+        border-radius: 14px;
+        padding: 1.1rem 1.25rem;
+        margin: 1rem 0 1.5rem 0;
+    }
+
+    .how-it-works p {
+        color: #334155;
+        margin: 0;
+        line-height: 1.65;
+        font-size: 0.95rem;
     }
 
     .grade-box {
         text-align: center;
-        padding: 1.5rem;
-        border-radius: 12px;
-        background: #f0fdfa;
+        padding: 1.75rem 1.5rem;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #f0fdfa 0%, #ecfeff 100%);
         border: 1px solid #99d8d3;
-        margin: 1rem 0;
+        margin: 1rem 0 0.75rem 0;
+        box-shadow: 0 8px 24px rgba(15, 118, 110, 0.08);
+    }
+
+    .grade-box .label {
+        margin: 0;
+        color: #475569;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
     }
 
     .grade-box .grade {
-        font-size: 3rem;
+        font-size: 3.5rem;
         font-weight: 800;
         color: #0f766e;
+        margin: 0.15rem 0 0 0;
+        line-height: 1;
+    }
+
+    .confidence-box {
+        background: #ffffff;
+        border: 1px solid #dbeafe;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .confidence-box .label {
+        color: #1e3a8a;
+        font-weight: 600;
+        font-size: 0.92rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .confidence-box .value {
+        color: #1d4ed8;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-top: 0.35rem;
+    }
+
+    .result-section-title {
+        color: #0f172a;
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 1.25rem 0 0.75rem 0;
+        padding-bottom: 0.35rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    div[data-testid="stMetric"] {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+
+    div[data-testid="stMetric"] label {
+        color: #64748b !important;
+        font-size: 0.82rem !important;
+    }
+
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+        color: #0f766e !important;
+        font-weight: 700 !important;
+    }
+
+    .profile-card {
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        min-height: 180px;
+        border: 1px solid transparent;
+    }
+
+    .profile-card.strengths {
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+    }
+
+    .profile-card.support {
+        background: #fff7ed;
+        border-color: #fed7aa;
+    }
+
+    .profile-card h4 {
+        margin: 0 0 0.65rem 0;
+        font-size: 1rem;
+    }
+
+    .profile-card.strengths h4 { color: #047857; }
+    .profile-card.support h4 { color: #c2410c; }
+
+    .profile-card ul {
         margin: 0;
+        padding-left: 1.1rem;
+        color: #334155;
+        line-height: 1.65;
+        font-size: 0.92rem;
+    }
+
+    .profile-note {
+        color: #64748b;
+        font-size: 0.86rem;
+        font-style: italic;
+        margin-bottom: 0.85rem;
+    }
+
+    .form-section-label {
+        color: #0f766e;
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin: 0.25rem 0 0.75rem 0;
     }
 
     .stButton > button {
         width: 100%;
-        border-radius: 8px;
-        font-weight: 600;
-        padding: 0.6rem;
+        border-radius: 10px;
+        font-weight: 700;
+        padding: 0.7rem;
+        background: linear-gradient(135deg, #0f766e, #115e59);
+        color: white;
+        border: none;
+    }
+
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #115e59, #134e4a);
+        color: white;
+        border: none;
     }
 
     .footer-note {
-        color: #9ca3af;
-        font-size: 0.8rem;
+        color: #94a3b8;
+        font-size: 0.82rem;
         text-align: center;
         margin-top: 2rem;
+        line-height: 1.6;
     }
 
-    .profile-note {
-        color: #6b7280;
-        font-size: 0.85rem;
-        font-style: italic;
-        margin-bottom: 0.75rem;
+    @media (max-width: 900px) {
+        .info-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -87,19 +285,73 @@ except FileNotFoundError:
 
 
 # --- Header ---
-st.title("🎓 Student Grade Predictor")
-st.markdown(
-    '<p class="subtitle">Estimate a student\'s likely final grade from study habits, '
-    'attendance, and subject scores.</p>',
-    unsafe_allow_html=True
-)
-st.info("Fill in the student profile, then click **Predict Final Grade**. "
-        "For educational analysis, not final academic decisions.")
+st.markdown("""
+<div class="hero">
+    <h1>🎓 Student Grade Predictor</h1>
+    <p>
+        Analyze a student's profile and estimate their likely final grade using patterns
+        learned from historical student records — combining demographics, learning habits,
+        school engagement, and subject performance.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="section-card">
+    <h3>📊 About the data behind this prediction</h3>
+    <p style="color:#475569; line-height:1.65; margin-top:0;">
+        This tool is built from individually structured student records, where each row
+        represents one student with their demographic profile, educational background,
+        learning habits, and academic performance. The dataset blends behavioral,
+        environmental, and academic factors — making it useful for educational analysis
+        and student-support planning.
+    </p>
+    <div class="info-grid">
+        <div class="info-pill">
+            <div class="icon">👤</div>
+            <div class="title">Demographics</div>
+            <p class="desc">Age, gender, and school type</p>
+        </div>
+        <div class="info-pill">
+            <div class="icon">🏠</div>
+            <div class="title">Family Background</div>
+            <p class="desc">Parent education level</p>
+        </div>
+        <div class="info-pill">
+            <div class="icon">📖</div>
+            <div class="title">Study Habits</div>
+            <p class="desc">Daily study hours, study method, internet access</p>
+        </div>
+        <div class="info-pill">
+            <div class="icon">🏫</div>
+            <div class="title">School Engagement</div>
+            <p class="desc">Attendance, travel time, extra activities</p>
+        </div>
+        <div class="info-pill">
+            <div class="icon">📝</div>
+            <div class="title">Academic Records</div>
+            <p class="desc">Marks in Math, Science, and English</p>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="how-it-works">
+    <p>
+        <strong>What does this prediction do?</strong> Enter a student's details below and
+        the trained machine learning model will estimate their <strong>final letter grade</strong>
+        (A–F) based on 12 selected inputs. It does <em>not</em> replace official grading —
+        it highlights patterns from past students so teachers and advisors can spot students
+        who may benefit from extra support early.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 # --- Form ---
 with st.form("student_prediction_form"):
 
-    st.subheader("👤 Student Profile")
+    st.markdown('<p class="form-section-label">👤 Student Profile</p>', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
 
     with col1:
@@ -116,7 +368,7 @@ with st.form("student_prediction_form"):
         extra_activities = st.selectbox("Extra Activities", ["Yes", "No"])
 
     st.divider()
-    st.subheader("📚 Study & Academic Records")
+    st.markdown('<p class="form-section-label">📚 Study & Academic Records</p>', unsafe_allow_html=True)
     col3, col4 = st.columns(2)
 
     with col3:
@@ -161,9 +413,12 @@ if submitted:
     grade = str(prediction).strip().upper()
     average_subject_score = (math_score + science_score + english_score) / 3
 
+    st.markdown("---")
+    st.markdown('<p class="result-section-title">🎯 Prediction Result</p>', unsafe_allow_html=True)
+
     st.markdown(f"""
     <div class="grade-box">
-        <p style="margin:0; color:#374151;">Predicted Final Grade</p>
+        <p class="label">Predicted Final Grade</p>
         <p class="grade">{grade}</p>
     </div>
     """, unsafe_allow_html=True)
@@ -174,9 +429,17 @@ if submitted:
             class_labels = model.classes_
             pred_idx = list(class_labels).index(prediction)
             confidence = proba[pred_idx]
-            st.markdown("**Model Confidence**")
+            st.markdown(f"""
+            <div class="confidence-box">
+                <div class="label">Model Confidence</div>
+            </div>
+            """, unsafe_allow_html=True)
             st.progress(float(confidence))
-            st.caption(f"{confidence * 100:.1f}%")
+            st.markdown(
+                f'<p class="value" style="color:#1d4ed8; font-weight:700; margin-top:-0.5rem;">'
+                f"{confidence * 100:.1f}%</p>",
+                unsafe_allow_html=True
+            )
         except (AttributeError, IndexError, ValueError, TypeError):
             pass
 
@@ -187,14 +450,14 @@ if submitted:
     else:
         st.error("May benefit from additional academic support or attendance monitoring.")
 
-    st.subheader("Academic Summary")
+    st.markdown('<p class="result-section-title">📈 Academic Summary</p>', unsafe_allow_html=True)
     sum1, sum2, sum3, sum4 = st.columns(4)
     sum1.metric("Math Score", f"{math_score:.1f}")
     sum2.metric("Science Score", f"{science_score:.1f}")
     sum3.metric("English Score", f"{english_score:.1f}")
     sum4.metric("Average Subject Score", f"{average_subject_score:.1f}")
 
-    st.subheader("Learning Profile")
+    st.markdown('<p class="result-section-title">🧭 Learning Profile</p>', unsafe_allow_html=True)
     st.markdown(
         '<p class="profile-note">These are input-based indicators, not direct '
         "explanations of the model prediction.</p>",
@@ -221,22 +484,30 @@ if submitted:
 
     profile_left, profile_right = st.columns(2)
 
+    strengths_html = "".join(f"<li>{item}</li>" for item in strengths) or (
+        "<li><em>No specific strengths identified from inputs.</em></li>"
+    )
+    support_html = "".join(f"<li>{item}</li>" for item in areas_for_support) or (
+        "<li><em>No specific support areas identified from inputs.</em></li>"
+    )
+
     with profile_left:
-        st.markdown("**Strengths**")
-        if strengths:
-            for item in strengths:
-                st.markdown(f"- {item}")
-        else:
-            st.markdown("_No specific strengths identified from inputs._")
+        st.markdown(f"""
+        <div class="profile-card strengths">
+            <h4>✅ Strengths</h4>
+            <ul>{strengths_html}</ul>
+        </div>
+        """, unsafe_allow_html=True)
 
     with profile_right:
-        st.markdown("**Areas for Support**")
-        if areas_for_support:
-            for item in areas_for_support:
-                st.markdown(f"- {item}")
-        else:
-            st.markdown("_No specific support areas identified from inputs._")
+        st.markdown(f"""
+        <div class="profile-card support">
+            <h4>🛟 Areas for Support</h4>
+            <ul>{support_html}</ul>
+        </div>
+        """, unsafe_allow_html=True)
 
+    st.markdown("")
     report_df = pd.DataFrame([{
         "predicted_final_grade": grade,
         "age": age,
@@ -265,6 +536,9 @@ with st.expander("ℹ️ About this prediction system"):
     st.markdown("""
 This system predicts a student's **final grade** using **12 selected features** from the
 student profile and academic records entered in the form.
+
+Each training record represents one student with demographic, behavioral, environmental,
+and academic information — similar to the categories shown above.
 
 **Features used:** age, gender, school type, parent education level, daily study hours,
 study method, internet access, attendance percentage, extra activities, and scores in
