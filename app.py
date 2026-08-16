@@ -529,6 +529,14 @@ def render_metric_card(label, value, css_class):
     """, unsafe_allow_html=True)
 
 
+SELECT_PLACEHOLDER = "— Select —"
+
+
+def validate_form_fields(fields):
+    missing = [label for label, value in fields if value is None or value == SELECT_PLACEHOLDER]
+    return missing
+
+
 @st.cache_resource
 def load_artifacts():
     preprocessor = joblib.load("student_performance_preprocessor.joblib")
@@ -658,17 +666,27 @@ with tab_predict:
         col1, col2 = st.columns(2)
 
         with col1:
-            age = st.number_input("Age", min_value=1, max_value=100, value=17, step=1)
-            gender = st.selectbox("Gender", ["Female", "Male", "Other"])
-            school_type = st.selectbox("School Type", ["Public", "Private"])
+            age = st.number_input(
+                "Age", min_value=1, max_value=100, value=None, placeholder="Enter age", step=1
+            )
+            gender = st.selectbox(
+                "Gender", [SELECT_PLACEHOLDER, "Female", "Male", "Other"]
+            )
+            school_type = st.selectbox(
+                "School Type", [SELECT_PLACEHOLDER, "Public", "Private"]
+            )
 
         with col2:
             parent_education = st.selectbox(
                 "Parent Education Level",
-                ["High School", "Diploma", "Bachelor", "Master", "PhD"]
+                [SELECT_PLACEHOLDER, "High School", "Diploma", "Bachelor", "Master", "PhD"]
             )
-            internet_access = st.selectbox("Internet Access", ["Yes", "No"])
-            extra_activities = st.selectbox("Extra Activities", ["Yes", "No"])
+            internet_access = st.selectbox(
+                "Internet Access", [SELECT_PLACEHOLDER, "Yes", "No"]
+            )
+            extra_activities = st.selectbox(
+                "Extra Activities", [SELECT_PLACEHOLDER, "Yes", "No"]
+            )
 
         st.divider()
         st.markdown(
@@ -679,197 +697,233 @@ with tab_predict:
 
         with col3:
             study_hours = st.number_input(
-                "Daily Study Hours", min_value=0.0, max_value=24.0, value=3.0, step=0.5
+                "Daily Study Hours",
+                min_value=0.0,
+                max_value=24.0,
+                value=None,
+                placeholder="Enter hours",
+                step=0.5
             )
             study_method = st.selectbox(
                 "Study Method",
-                ["Self-study", "Group Study", "Online Learning", "Tutoring"]
+                [SELECT_PLACEHOLDER, "Self-study", "Group Study", "Online Learning", "Tutoring"]
             )
-            attendance_percentage = st.slider("Attendance Percentage", 0, 100, 85)
+            attendance_percentage = st.number_input(
+                "Attendance Percentage",
+                min_value=0,
+                max_value=100,
+                value=None,
+                placeholder="Enter attendance %",
+                step=1
+            )
 
         with col4:
-            math_score = st.number_input("Math Score", 0.0, 100.0, 70.0, step=1.0)
-            science_score = st.number_input("Science Score", 0.0, 100.0, 70.0, step=1.0)
-            english_score = st.number_input("English Score", 0.0, 100.0, 70.0, step=1.0)
+            math_score = st.number_input(
+                "Math Score", 0.0, 100.0, value=None, placeholder="Enter score", step=1.0
+            )
+            science_score = st.number_input(
+                "Science Score", 0.0, 100.0, value=None, placeholder="Enter score", step=1.0
+            )
+            english_score = st.number_input(
+                "English Score", 0.0, 100.0, value=None, placeholder="Enter score", step=1.0
+            )
 
         st.write("")
         submitted = st.form_submit_button("✨ Predict Final Grade")
 
     if submitted:
-        new_student = pd.DataFrame([{
-            "age": age,
-            "gender": gender,
-            "school_type": school_type,
-            "parent_education": parent_education,
-            "study_hours": study_hours,
-            "study_method": study_method,
-            "internet_access": internet_access,
-            "attendance_percentage": attendance_percentage,
-            "extra_activities": extra_activities,
-            "math_score": math_score,
-            "science_score": science_score,
-            "english_score": english_score
-        }])
+        missing_fields = validate_form_fields([
+            ("Age", age),
+            ("Gender", gender),
+            ("School Type", school_type),
+            ("Parent Education Level", parent_education),
+            ("Internet Access", internet_access),
+            ("Extra Activities", extra_activities),
+            ("Daily Study Hours", study_hours),
+            ("Study Method", study_method),
+            ("Attendance Percentage", attendance_percentage),
+            ("Math Score", math_score),
+            ("Science Score", science_score),
+            ("English Score", english_score),
+        ])
 
-        processed_student = preprocessor.transform(new_student)
-        prediction = model.predict(processed_student)[0]
-        grade = str(prediction).strip().upper()
-        average_subject_score = (math_score + science_score + english_score) / 3
-        grade_style = GRADE_STYLES.get(grade, GRADE_STYLES["C"])
+        if missing_fields:
+            st.warning(f"Please complete all fields before predicting: {', '.join(missing_fields)}")
+        else:
+            new_student = pd.DataFrame([{
+                "age": age,
+                "gender": gender,
+                "school_type": school_type,
+                "parent_education": parent_education,
+                "study_hours": study_hours,
+                "study_method": study_method,
+                "internet_access": internet_access,
+                "attendance_percentage": attendance_percentage,
+                "extra_activities": extra_activities,
+                "math_score": math_score,
+                "science_score": science_score,
+                "english_score": english_score
+            }])
 
-        st.markdown('<div class="results-panel">', unsafe_allow_html=True)
-        st.markdown(
-            '<p class="result-section-title">🎯 Prediction Result <span class="line"></span></p>',
-            unsafe_allow_html=True
-        )
+            processed_student = preprocessor.transform(new_student)
+            prediction = model.predict(processed_student)[0]
+            grade = str(prediction).strip().upper()
+            average_subject_score = (math_score + science_score + english_score) / 3
+            grade_style = GRADE_STYLES.get(grade, GRADE_STYLES["C"])
 
-        st.markdown(f"""
-        <div class="grade-box" style="
-            background: linear-gradient(180deg, {grade_style['bg']} 0%, #ffffff 100%);
-            border: 1px solid {grade_style['border']};
-            box-shadow: 0 12px 30px {grade_style['glow']};
-        ">
-            <p class="label">Predicted Final Grade</p>
-            <p class="grade" style="color:{grade_style['color']};">{grade}</p>
-        </div>
-        """, unsafe_allow_html=True)
+            st.markdown('<div class="results-panel">', unsafe_allow_html=True)
+            st.markdown(
+                '<p class="result-section-title">🎯 Prediction Result <span class="line"></span></p>',
+                unsafe_allow_html=True
+            )
 
-        if hasattr(model, "predict_proba"):
-            try:
-                proba = model.predict_proba(processed_student)[0]
-                class_labels = model.classes_
-                pred_idx = list(class_labels).index(prediction)
-                confidence = proba[pred_idx]
+            st.markdown(f"""
+            <div class="grade-box" style="
+                background: linear-gradient(180deg, {grade_style['bg']} 0%, #ffffff 100%);
+                border: 1px solid {grade_style['border']};
+                box-shadow: 0 12px 30px {grade_style['glow']};
+            ">
+                <p class="label">Predicted Final Grade</p>
+                <p class="grade" style="color:{grade_style['color']};">{grade}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if hasattr(model, "predict_proba"):
+                try:
+                    proba = model.predict_proba(processed_student)[0]
+                    class_labels = model.classes_
+                    pred_idx = list(class_labels).index(prediction)
+                    confidence = proba[pred_idx]
+                    st.markdown(f"""
+                    <div class="confidence-wrap">
+                        <div class="label">Model Confidence</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    st.progress(float(confidence))
+                    st.markdown(
+                        f'<p class="value" style="color:#1d4ed8; font-weight:800; margin-top:-0.35rem;">'
+                        f"{confidence * 100:.1f}%</p>",
+                        unsafe_allow_html=True
+                    )
+                except (AttributeError, IndexError, ValueError, TypeError):
+                    pass
+
+            if grade in ["A", "B"]:
+                render_outcome_banner(
+                    "Strong predicted outcome — patterns associated with higher performance.",
+                    "success"
+                )
+            elif grade == "C":
+                render_outcome_banner(
+                    "Moderate predicted outcome — consistent study support may help.",
+                    "warning"
+                )
+            else:
+                render_outcome_banner(
+                    "May benefit from additional academic support or attendance monitoring.",
+                    "error"
+                )
+
+            st.markdown(
+                '<p class="result-section-title">📈 Academic Summary <span class="line"></span></p>',
+                unsafe_allow_html=True
+            )
+            sum1, sum2, sum3, sum4 = st.columns(4)
+            with sum1:
+                render_metric_card("Math Score", f"{math_score:.1f}", "math")
+            with sum2:
+                render_metric_card("Science Score", f"{science_score:.1f}", "science")
+            with sum3:
+                render_metric_card("English Score", f"{english_score:.1f}", "english")
+            with sum4:
+                render_metric_card("Average Subject Score", f"{average_subject_score:.1f}", "average")
+
+            st.markdown(
+                '<p class="result-section-title">🧭 Learning Profile <span class="line"></span></p>',
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                '<p class="profile-note">These are input-based indicators, not direct '
+                "explanations of the model prediction.</p>",
+                unsafe_allow_html=True
+            )
+
+            strengths = []
+            areas_for_support = []
+
+            if average_subject_score >= 75:
+                strengths.append("Strong overall subject performance")
+            if average_subject_score < 60:
+                areas_for_support.append("Subject-score improvement may be needed")
+            if attendance_percentage >= 90:
+                strengths.append("Strong attendance record")
+            if attendance_percentage < 75:
+                areas_for_support.append("Attendance may need improvement")
+            if study_hours >= 2:
+                strengths.append("Consistent daily study time")
+            if study_hours < 2:
+                areas_for_support.append("More regular study time may be beneficial")
+            if internet_access == "Yes":
+                strengths.append("Access to online learning resources")
+
+            profile_left, profile_right = st.columns(2)
+
+            strengths_html = "".join(f"<li>{item}</li>" for item in strengths) or (
+                "<li><em>No specific strengths identified from inputs.</em></li>"
+            )
+            support_html = "".join(f"<li>{item}</li>" for item in areas_for_support) or (
+                "<li><em>No specific support areas identified from inputs.</em></li>"
+            )
+
+            with profile_left:
                 st.markdown(f"""
-                <div class="confidence-wrap">
-                    <div class="label">Model Confidence</div>
+                <div class="profile-card strengths">
+                    <h4>✅ Strengths</h4>
+                    <ul>{strengths_html}</ul>
                 </div>
                 """, unsafe_allow_html=True)
-                st.progress(float(confidence))
-                st.markdown(
-                    f'<p class="value" style="color:#1d4ed8; font-weight:800; margin-top:-0.35rem;">'
-                    f"{confidence * 100:.1f}%</p>",
-                    unsafe_allow_html=True
-                )
-            except (AttributeError, IndexError, ValueError, TypeError):
-                pass
 
-        if grade in ["A", "B"]:
-            render_outcome_banner(
-                "Strong predicted outcome — patterns associated with higher performance.",
-                "success"
+            with profile_right:
+                st.markdown(f"""
+                <div class="profile-card support">
+                    <h4>🛟 Areas for Support</h4>
+                    <ul>{support_html}</ul>
+                </div>
+                """, unsafe_allow_html=True)
+
+            report_df = pd.DataFrame([{
+                "predicted_final_grade": grade,
+                "age": age,
+                "gender": gender,
+                "school_type": school_type,
+                "parent_education": parent_education,
+                "study_hours": study_hours,
+                "study_method": study_method,
+                "internet_access": internet_access,
+                "attendance_percentage": attendance_percentage,
+                "extra_activities": extra_activities,
+                "math_score": math_score,
+                "science_score": science_score,
+                "english_score": english_score,
+                "average_subject_score": average_subject_score
+            }])
+
+            st.markdown(
+                '<p class="result-section-title">📄 Export Report <span class="line"></span></p>',
+                unsafe_allow_html=True
             )
-        elif grade == "C":
-            render_outcome_banner(
-                "Moderate predicted outcome — consistent study support may help.",
-                "warning"
+            st.markdown(
+                '<div class="download-wrap"><p>Save this prediction and all entered student inputs as a CSV file.</p></div>',
+                unsafe_allow_html=True
             )
-        else:
-            render_outcome_banner(
-                "May benefit from additional academic support or attendance monitoring.",
-                "error"
+            st.download_button(
+                label="⬇️ Download Prediction Report",
+                data=report_df.to_csv(index=False),
+                file_name="student_grade_prediction.csv",
+                mime="text/csv"
             )
 
-        st.markdown(
-            '<p class="result-section-title">📈 Academic Summary <span class="line"></span></p>',
-            unsafe_allow_html=True
-        )
-        sum1, sum2, sum3, sum4 = st.columns(4)
-        with sum1:
-            render_metric_card("Math Score", f"{math_score:.1f}", "math")
-        with sum2:
-            render_metric_card("Science Score", f"{science_score:.1f}", "science")
-        with sum3:
-            render_metric_card("English Score", f"{english_score:.1f}", "english")
-        with sum4:
-            render_metric_card("Average Subject Score", f"{average_subject_score:.1f}", "average")
-
-        st.markdown(
-            '<p class="result-section-title">🧭 Learning Profile <span class="line"></span></p>',
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            '<p class="profile-note">These are input-based indicators, not direct '
-            "explanations of the model prediction.</p>",
-            unsafe_allow_html=True
-        )
-
-        strengths = []
-        areas_for_support = []
-
-        if average_subject_score >= 75:
-            strengths.append("Strong overall subject performance")
-        if average_subject_score < 60:
-            areas_for_support.append("Subject-score improvement may be needed")
-        if attendance_percentage >= 90:
-            strengths.append("Strong attendance record")
-        if attendance_percentage < 75:
-            areas_for_support.append("Attendance may need improvement")
-        if study_hours >= 2:
-            strengths.append("Consistent daily study time")
-        if study_hours < 2:
-            areas_for_support.append("More regular study time may be beneficial")
-        if internet_access == "Yes":
-            strengths.append("Access to online learning resources")
-
-        profile_left, profile_right = st.columns(2)
-
-        strengths_html = "".join(f"<li>{item}</li>" for item in strengths) or (
-            "<li><em>No specific strengths identified from inputs.</em></li>"
-        )
-        support_html = "".join(f"<li>{item}</li>" for item in areas_for_support) or (
-            "<li><em>No specific support areas identified from inputs.</em></li>"
-        )
-
-        with profile_left:
-            st.markdown(f"""
-            <div class="profile-card strengths">
-                <h4>✅ Strengths</h4>
-                <ul>{strengths_html}</ul>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with profile_right:
-            st.markdown(f"""
-            <div class="profile-card support">
-                <h4>🛟 Areas for Support</h4>
-                <ul>{support_html}</ul>
-            </div>
-            """, unsafe_allow_html=True)
-
-        report_df = pd.DataFrame([{
-            "predicted_final_grade": grade,
-            "age": age,
-            "gender": gender,
-            "school_type": school_type,
-            "parent_education": parent_education,
-            "study_hours": study_hours,
-            "study_method": study_method,
-            "internet_access": internet_access,
-            "attendance_percentage": attendance_percentage,
-            "extra_activities": extra_activities,
-            "math_score": math_score,
-            "science_score": science_score,
-            "english_score": english_score,
-            "average_subject_score": average_subject_score
-        }])
-
-        st.markdown(
-            '<p class="result-section-title">📄 Export Report <span class="line"></span></p>',
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            '<div class="download-wrap"><p>Save this prediction and all entered student inputs as a CSV file.</p></div>',
-            unsafe_allow_html=True
-        )
-        st.download_button(
-            label="⬇️ Download Prediction Report",
-            data=report_df.to_csv(index=False),
-            file_name="student_grade_prediction.csv",
-            mime="text/csv"
-        )
-
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
     '<p class="footer-note">Disclaimer: This prediction is generated from patterns in the '
